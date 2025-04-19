@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- CHANGE: Title -->
+    <title>Photo Manipulation Detector</title>
+    <style>
+        /* CSS remains the same */
+        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
+        #upload-form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
+        #status { margin-top: 15px; font-weight: bold; }
+        #result { margin-top: 15px; padding: 15px; border: 1px solid #eee; border-radius: 5px; background-color: #f0f0f0; white-space: pre-wrap; }
+        .error { color: red; }
+        .success { color: green; }
+        .processing { color: orange; }
+        button { padding: 10px 15px; cursor: pointer; }
+        input[type="file"] { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- CHANGE: Title and description -->
+    <h1>Photo Manipulation Detection Service</h1>
+    <p>Upload a JPG, PNG, or WEBP image to check if it might be AI-generated or manipulated.</p>
+    <p><strong>Disclaimer:</strong> This is a basic demonstration using placeholder detection logic. Real-world detection of sophisticated image manipulation is complex and requires advanced models. Results may not be accurate.</p>
+
+    <form id="upload-form" enctype="multipart/form-data">
+        <!-- CHANGE: Label and accept attribute -->
+        <label for="fileInput">Choose image (Max 10MB):</label><br>
+        <input type="file" id="fileInput" name="file" accept=".png,.jpg,.jpeg,.webp" required>
+        <br>
+        <button type="submit" id="submitBtn">Detect</button>
+    </form>
+
+    <div id="status"></div>
+    <div id="result"></div>
+
+    <script>
+        // JavaScript logic remains exactly the same as before!
+        const form = document.getElementById('upload-form');
+        const fileInput = document.getElementById('fileInput');
+        const statusDiv = document.getElementById('status');
+        const resultDiv = document.getElementById('result');
+        const submitBtn = document.getElementById('submitBtn');
+
+        let pollInterval = null;
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            statusDiv.textContent = '';
+            resultDiv.textContent = '';
+            statusDiv.className = '';
+            resultDiv.className = '';
+            submitBtn.disabled = true;
+
+            if (!fileInput.files || fileInput.files.length === 0) {
+                statusDiv.textContent = 'Please select an image file.';
+                statusDiv.className = 'error';
+                submitBtn.disabled = false;
+                return;
+            }
+
+            // --- Check file type again on client-side (optional but good UX) ---
+            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+            const file = fileInput.files[0];
+            if (!allowedTypes.includes(file.type)) {
+                 statusDiv.textContent = `Invalid file type. Please select a PNG, JPG, or WEBP image. (Detected type: ${file.type || 'unknown'})`;
+                 statusDiv.className = 'error';
+                 submitBtn.disabled = false;
+                 return;
+            }
+            // --- End optional client-side check ---
+
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            statusDiv.textContent = 'Uploading image...';
+            statusDiv.className = 'processing';
+
+            try {
+                const uploadResponse = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!uploadResponse.ok) {
+                    const errorData = await uploadResponse.json();
+                    throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
+                }
+
+                const data = await uploadResponse.json();
+                const taskId = data.task_id;
+
+                statusDiv.textContent = `Image uploaded. Processing task ID: ${taskId}. Waiting for analysis...`;
+                statusDiv.className = 'processing';
+
+                pollInterval = setInterval(() => checkStatus(taskId), 3000);
+
+            } catch (error) {
+                console.error('Error during upload:', error);
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'error';
+                submitBtn.disabled = false;
+                if (pollInterval) clearInterval(pollInterval);
+            }
+        });
+
+        async function checkStatus(taskId) {
+            try {
+                const statusResponse = await fetch(`/status/${taskId}`);
+                if (!statusResponse.ok) {
+                    // Try to get error message from body if available
+                    let errorMsg = `Failed to get status: ${statusResponse.statusText}`;
+                    try {
+                        const errData = await statusResponse.json();
+                        if (errData.error) errorMsg = errData.error;
+                    } catch(e) {/* Ignore JSON parse error */}
+                    throw new Error(errorMsg);
+                }
+
+                const data = await statusResponse.json();
+
+                statusDiv.textContent = `Status: ${data.state} - ${data.status}`;
+
+                if (data.state === 'SUCCESS') {
+                    clearInterval(pollInterval);
+                    statusDiv.className = 'success';
+                    const resultData = data.result;
+                    // Display formatted results
+                    resultDiv.innerHTML = `
+                        <h3>Detection Result for ${resultData.original_filename || 'image'}</h3>
+                        <pre>${JSON.stringify(resultData.detection, null, 2)}</pre>
+                    `;
+                    submitBtn.disabled = false;
+                } else if (data.state === 'FAILURE') {
+                    clearInterval(pollInterval);
+                    statusDiv.className = 'error';
+                     // Try to get more specific error info from task meta/result
+                     let detailedError = "Processing failed.";
+                     if (data.result && typeof data.result === 'string') {
+                         detailedError = data.result; // Might be the exception string
+                     } else if (data.result && data.result.message) {
+                         detailedError = data.result.message;
+                     } else if (data.result && data.result.exc_message) { // Check meta stored on failure
+                         detailedError = `${data.result.exc_type}: ${data.result.exc_message}`;
+                     }
+                     statusDiv.textContent = `Task Failed`;
+                     resultDiv.textContent = `Error details: ${detailedError}`;
+                     if (data.result && data.result.original_filename) {
+                         resultDiv.textContent += ` (File: ${data.result.original_filename})`
+                     }
+
+                    submitBtn.disabled = false;
+                } else {
+                    statusDiv.className = 'processing';
+                }
+
+            } catch (error) {
+                console.error('Error polling status:', error);
+                statusDiv.textContent = `Error checking status: ${error.message}`;
+                statusDiv.className = 'error';
+                clearInterval(pollInterval);
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+</html>

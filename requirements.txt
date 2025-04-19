@@ -1,0 +1,7 @@
+Flask>=2.0
+# Remove celery and redis
+# celery>=5.0
+# redis>=4.0
+requests
+Pillow>=9.0
+Flask-SQLAlchemy>=2.5
