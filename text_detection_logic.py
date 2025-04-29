@@ -2,7 +2,7 @@
 import time, os, json, logging, sys, traceback
 
 log_format = '%(asctime)s - %(levelname)s - TXT_DL_Local - %(message)s'; logging.basicConfig(level=logging.INFO, format=log_format); log = logging.getLogger(__name__)
-TEXT_MODEL_NAME = "Hello-SimpleAI/chatgpt-detector-roberta"
+TEXT_MODEL_NAME = "Hello-SimpleAI/chatgpt-detector-roberta" # Or your preferred text model
 TEXT_MODEL_LOADED = False; text_detector_pipeline = None
 try:
     log.info(f"Nạp pipeline text: {TEXT_MODEL_NAME}...")
@@ -10,8 +10,8 @@ try:
     text_detector_pipeline = hf_pipeline("text-classification", model=TEXT_MODEL_NAME)
     if text_detector_pipeline: TEXT_MODEL_LOADED = True; log.info(f"Nạp xong model text: {TEXT_MODEL_NAME}.")
     else: log.error(f"Pipeline text trả về None cho {TEXT_MODEL_NAME}!")
-except ImportError as e: log.error(f"LỖI IMPORT NGHIÊM TRỌNG: Thiếu transformers/torch/tf: {e}", exc_info=True)
-except Exception as e: log.error(f"LỖI NGHIÊM TRỌNG NẠP MODEL TEXT '{TEXT_MODEL_NAME}': {e}", exc_info=True)
+except ImportError as e: log.error(f"LỖI IMPORT: Thiếu transformers/torch/tf: {e}", exc_info=True)
+except Exception as e: log.error(f"LỖI NẠP MODEL TEXT '{TEXT_MODEL_NAME}': {e}", exc_info=True)
 
 UNCERTAINTY_THRESHOLD = 0.60
 
@@ -44,4 +44,4 @@ def format_error_result(e, input_identifier="đoạn text"):
 def format_success_result(detection_result, input_identifier="đoạn text"):
     success_data = { 'status': 'success', 'input_identifier': input_identifier or "đoạn text", 'detection': detection_result }
     try: return json.dumps(success_data)
-    except TypeError: return json.dumps({'status': 'success', 'input_identifier': input_identifier or "đoạn text", 'error': 'Lỗi định dạng kết quả thành công.'})
+    except TypeError: return json.dumps({'status': 'success', 'input_identifier': input_identifier or "đoạn text", 'error': 'Lỗi định dạng kết quả.'})
