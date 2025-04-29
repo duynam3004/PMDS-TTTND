@@ -1,171 +1,186 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CHANGE: Title -->
-    <title>Photo Manipulation Detector</title>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Công cụ phát hiện nội dung AI</title>
     <style>
-        /* CSS remains the same */
-        body { font-family: sans-serif; line-height: 1.6; padding: 20px; }
-        #upload-form { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; background-color: #f9f9f9; }
-        #status { margin-top: 15px; font-weight: bold; }
-        #result { margin-top: 15px; padding: 15px; border: 1px solid #eee; border-radius: 5px; background-color: #f0f0f0; white-space: pre-wrap; }
-        .error { color: red; }
-        .success { color: green; }
-        .processing { color: orange; }
-        button { padding: 10px 15px; cursor: pointer; }
-        input[type="file"] { margin-bottom: 10px; }
-    </style>
-</head>
-<body>
+      /* --- Cài đặt Cơ bản & Font chữ --- */
+      :root {
+        --primary-color: #0056b3; --secondary-color: #f8f9fa; --border-color: #dee2e6;
+        --text-color: #212529; --muted-color: #6c757d;
+        --success-bg: #d1e7dd; --success-border: #a3cfbb; --success-text: #0f5132;
+        --error-bg: #f8d7da; --error-border: #f1aeb5; --error-text: #842029;
+        --warning-bg: #fff3cd; --warning-border: #ffe69c; --warning-text: #664d03;
+        --border-radius: 0.375rem; --spacing-unit: 1rem;
+        --human-color: #28a745; --ai-color: #dc3545; --uncertain-color: #ffc107;
+      }
+      html { box-sizing: border-box; scroll-behavior: smooth; }
+      *, *:before, *:after { box-sizing: inherit; }
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: var(--text-color); background-color: #fff; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
+      .container { max-width: 850px; margin: calc(var(--spacing-unit) * 1.5) auto; padding: 0 calc(var(--spacing-unit) * 1); flex-grow: 1; }
+      h1 { text-align: center; color: var(--primary-color); margin-bottom: calc(var(--spacing-unit) * 1.5); border-bottom: 2px solid var(--primary-color); padding-bottom: calc(var(--spacing-unit) * 0.5); }
+      p { margin-bottom: var(--spacing-unit); }
+      p strong { color: var(--error-text); }
+      #toc { background-color: var(--secondary-color); padding: var(--spacing-unit); margin-bottom: calc(var(--spacing-unit) * 2); border-radius: var(--border-radius); border: 1px solid var(--border-color); }
+      #toc h2 { margin-top: 0; margin-bottom: calc(var(--spacing-unit) * 0.75); font-size: 1.25em; border-bottom: none; }
+      #toc ul { list-style: none; padding: 0; margin: 0; }
+      #toc li { margin-bottom: calc(var(--spacing-unit) * 0.3); }
+      #toc a { text-decoration: none; color: var(--primary-color); font-weight: 500; transition: color 0.2s ease; }
+      #toc a:hover { color: #003f80; text-decoration: underline; }
+      .detector-section { margin-bottom: calc(var(--spacing-unit) * 2.5); padding: calc(var(--spacing-unit) * 1.5); border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+      .detector-section h2 { margin-top: 0; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: calc(var(--spacing-unit) * 0.5); margin-bottom: calc(var(--spacing-unit) * 1.5); font-size: 1.5em; }
+      label { display: block; margin-bottom: calc(var(--spacing-unit) * 0.4); font-weight: 600; }
+      input[type="file"], textarea { display: block; width: 100%; padding: calc(var(--spacing-unit) * 0.6) var(--spacing-unit); margin-bottom: calc(var(--spacing-unit) * 1.2); border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 1em; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+      input[type="file"] { line-height: 1.5; }
+      input[type="file"]:focus, textarea:focus { border-color: var(--primary-color); outline: none; box-shadow: 0 0 0 0.2rem rgba(0, 86, 179, 0.25); }
+      textarea { min-height: 120px; font-family: inherit; resize: vertical; }
+      button { padding: calc(var(--spacing-unit) * 0.7) calc(var(--spacing-unit) * 1.5); cursor: pointer; background-color: var(--primary-color); color: white; border: none; border-radius: var(--border-radius); font-size: 1.05em; font-weight: 500; transition: background-color 0.2s ease, opacity 0.2s ease; }
+      button:hover:not(:disabled) { background-color: #004a99; }
+      button:disabled { background-color: #a0a0a0; cursor: not-allowed; opacity: 0.7; }
+      .status { margin-top: calc(var(--spacing-unit) * 1.5); font-weight: 500; padding: calc(var(--spacing-unit) * 0.8); border-radius: var(--border-radius); border: 1px solid transparent; display: none; text-align: center; }
+      .result { margin-top: var(--spacing-unit); padding: var(--spacing-unit); border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--secondary-color); display: none; }
+      .result h3 { margin-top: 0; margin-bottom: calc(var(--spacing-unit) * 0.75); font-family: inherit; font-size: 1.1em; color: var(--text-color); }
+      .status.error { color: var(--error-text); background-color: var(--error-bg); border-color: var(--error-border); display: block; }
+      .status.success { color: var(--success-text); background-color: var(--success-bg); border-color: var(--success-border); display: block; }
+      .status.processing { color: var(--warning-text); background-color: var(--warning-bg); border-color: var(--warning-border); display: block; }
+      .result-visualization { padding: var(--spacing-unit) 0; display: block; /* Ensure visible by default inside result */ }
+      .slider-track { width: 100%; height: 15px; background: linear-gradient( to right, var(--human-color) 0%, var(--uncertain-color) 50%, var(--ai-color) 100% ); border-radius: 10px; position: relative; margin-bottom: calc(var(--spacing-unit) * 0.75); border: 1px solid #ccc; display: block; /* Ensure visible */ }
+      .slider-indicator { width: 24px; height: 24px; background-color: #555; border: 2px solid white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); transition: left 0.8s cubic-bezier(0.25, 0.1, 0.25, 1); display: block; /* Ensure visible */ }
+      .slider-labels { display: flex; justify-content: space-between; width: 100%; font-size: 0.85em; color: var(--muted-color); padding: 0 5px; margin-top: calc(var(--spacing-unit) * 0.5); }
+      .slider-labels span { flex-basis: 30%; text-align: center; }
+    ảnh</h3>
+          <div class="result-visualization">
+            <div class="slider-track"> <div id="image-slider-indicator" class="slider-indicator"></div> </div>
+            <div class="slider-labels"> <span class="label-human">Chắc chắn Người</span> <span class="label-uncertain">Không chắc</span> <span class="label-ai">Chắc chắn AI</span> </div>
+            <div id="image-result-details" class="result-details"></div>
+          </div>
+        </div>
+      </section>
 
-    <!-- CHANGE: Title and description -->
-    <h1>Photo Manipulation Detection Service</h1>
-    <p>Upload a JPG, PNG, or WEBP image to check if it might be AI-generated or manipulated.</p>
-    <p><strong>Disclaimer:</strong> This is a basic demonstration using placeholder detection logic. Real-world detection of sophisticated image manipulation is complex and requires advanced models. Results may not be accurate.</p>
+      <section id="text-detector" class="detector-section">
+        <h2>2. Dịch vụ phát hiện văn bản do AI tạo</h2>
+        <p>Dán đoạn văn bản bạn muốn kiểm tra vào ô dưới đây.</p>
+        <form id="text-detect-form">
+          <label for="textInput">Nội dung văn bản:</label>
+          <textarea id="textInput" name="text_input" required placeholder="Nhập hoặc dán văn bản..."></textarea>
+          <button type="submit" id="textSubmitBtn">Phát hiện Văn bản</button>
+        </form>
+        <div id="text-status" class="status"></div>
+        <div id="text-result" class="result">
+          <h3>Kết quả phát hiện Văn bản</h3>
+          <div class="result-visualization">
+            <div class="slider-track"> <div id="text-slider-indicator" class="slider-indicator"></div> </div>
+            <div class="slider-labels"> <span class="label-human">Chắc chắn Người</span> <span class="label-uncertain">Không chắc</span> <span class="label-ai">Chắc chắn AI</span> </div>
+            <div id="text-result-details" class="result-details"></div>
+          </div>
+        </div>
+      </section>
 
-    <form id="upload-form" enctype="multipart/form-data">
-        <!-- CHANGE: Label and accept attribute -->
-        <label for="fileInput">Choose image (Max 10MB):</label><br>
-        <input type="file" id="fileInput" name="file" accept=".png,.jpg,.jpeg,.webp" required>
-        <br>
-        <button type="submit" id="submitBtn">Detect</button>
-    </form>
+      <section id="copyright" class="detector-section">
+         <h2>3. Bản quyền</h2>
+         <p>Thành viên nhóm:</p><ul><li>Huỳnh Nguyễn Ngọc Tài</li><li>Châu Lê Ngọc Hà</li><li>Phạm Hồ Đăng Thịnh</li><li>Nguyễn Hữu Duy Nam</li></ul>
+         <p>Sản phẩm tham gia Cuộc thi Sáng tạo Thanh thiếu niên Nhi đồng năm học 2024-2025.</p>
+         <p>Mọi thông tin chi tiết hoặc đóng góp xin liên hệ: dnmnguyenhuu@gmail.com</p>
+         <a href="https://sites.google.com/view/webphathiennoidunggia/trang-ch%E1%BB%A7"> Web tham khảo thêm </a>
+         <!-- <img src="/static/logo.png" alt="Logo" style="max-width: 150px; margin-top: 1rem;"> -->
+      </section>
+    </div> <!-- End container -->
 
-    <div id="status"></div>
-    <div id="result"></div>
+    <footer>
+      <p>©2025. Phát triển cho Cuộc thi Sáng tạo TTNNĐ.</p>
+    </footer>
 
     <script>
-        // JavaScript logic remains exactly the same as before!
-        const form = document.getElementById('upload-form');
-        const fileInput = document.getElementById('fileInput');
-        const statusDiv = document.getElementById('status');
-        const resultDiv = document.getElementById('result');
-        const submitBtn = document.getElementById('submitBtn');
+        // === Lấy các phần tử DOM ===
+        const imageForm = document.getElementById('image-upload-form'); const imageFileInput = document.getElementById('fileInput'); const imageStatusDiv = document.getElementById('image-status'); const imageResultDiv = document.getElementById('image-result'); const imageSubmitBtn = document.getElementById('imageSubmitBtn'); const imageSliderIndicator = document.getElementById('image-slider-indicator'); const imageResultDetails = document.getElementById('image-result-details'); let imagePollInterval = null;
+        const textForm = document.getElementById('text-detect-form'); const textInputArea = document.getElementById('textInput'); const textStatusDiv = document.getElementById('text-status'); const textResultDiv = document.getElementById('text-result'); const textSubmitBtn = document.getElementById('textSubmitBtn'); const textSliderIndicator = document.getElementById('text-slider-indicator'); const textResultDetails = document.getElementById('text-result-details'); let textPollInterval = null;
 
-        let pollInterval = null;
+        // === Hàm tiện ích ===
+        function updateStatus(element, message, statusClass) { if (!element) { console.error("updateStatus: element không tồn tại!"); return; } element.textContent = message; element.className = 'status'; if (statusClass) element.classList.add(statusClass); element.style.display = message ? 'block' : 'none'; }
+        function calculateAiLikelihood(detectionData) { console.log("Calculating Likelihood - Input Data:", JSON.stringify(detectionData)); if (!detectionData || typeof detectionData !== 'object') { console.log(" -> Dữ liệu không hợp lệ/null, trả về 0.5"); return 0.5; } const classification = (detectionData.classification || '').toUpperCase(); const confidence = (typeof detectionData.confidence === 'number') ? detectionData.confidence : 0.0; let ai_likelihood = 0.5; console.log(` -> Đã phân tích - Phân loại: '${classification}', Tin cậy: ${confidence} (Kiểu: ${typeof confidence})`); if (['AI', 'FAKE', 'AI/CHATGPT', 'ARTIFICIAL', 'AI TẠO'].includes(classification)) { ai_likelihood = confidence; console.log(` -> Khả năng AI dựa trên phân loại AI/Fake: ${ai_likelihood}`); } else if (['NGƯỜI', 'HUMAN', 'REAL', 'NGƯỜI VIẾT'].includes(classification)) { ai_likelihood = 1.0 - confidence; console.log(` -> Khả năng AI dựa trên phân loại Người/Thật: ${ai_likelihood}`); } else if (classification === 'KHÔNG CHẮC CHẮN') { ai_likelihood = 0.5; console.log(` -> Likelihood = 0.5 vì phân loại là 'Không chắc chắn'`); } else { console.log(` -> Phân loại '${classification}' không nhận dạng được, mặc định 0.5`); ai_likelihood = 0.5; } if (isNaN(ai_likelihood)) { console.error(` -> Calculated likelihood is NaN! Defaulting to 0.5.`); ai_likelihood = 0.5; } const final_likelihood = Math.max(0, Math.min(1, ai_likelihood)); console.log(` --> Khả năng AI cuối cùng (0-1): ${final_likelihood}`); return final_likelihood; }
+        function updateSlider(indicatorElement, aiLikelihoodScore) { console.log(`Updating Slider - Received Likelihood Score: ${aiLikelihoodScore} (Type: ${typeof aiLikelihoodScore})`); if (!indicatorElement) { console.error("updateSlider: indicatorElement là null!"); return; } let score = aiLikelihoodScore; if (typeof score !== 'number' || isNaN(score)) { console.error(`updateSlider: Invalid score (${score}), defaulting slider.`); score = 0.5; } const percentage = score * 100; const hue = (1.0 - score) * 120; console.log(` -> Đặt left: ${percentage}%, background-color: hsl(${hue}, 80%, 50%)`); indicatorElement.style.left = `${percentage}%`; indicatorElement.style.backgroundColor = `hsl(${hue}, 80%, 50%)`; indicatorElement.style.display = 'block'; }
 
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            statusDiv.textContent = '';
-            resultDiv.textContent = '';
-            statusDiv.className = '';
-            resultDiv.className = '';
-            submitBtn.disabled = true;
+        // === Xử lý Form Ảnh ===
+        if (imageForm) { imageForm.addEventListener('submit', async (event) => { console.log("Image form submit event triggered."); event.preventDefault(); console.log("Default form submission prevented for image."); updateStatus(imageStatusDiv, '', null); imageResultDiv.style.display = 'none'; imageSubmitBtn.disabled = true; if (imagePollInterval) clearInterval(imagePollInterval); if (!imageFileInput || !imageFileInput.files || imageFileInput.files.length === 0) { updateStatus(imageStatusDiv, 'Vui lòng chọn ảnh.', 'error'); imageSubmitBtn.disabled = false; return; } const file = imageFileInput.files[0]; const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']; if (!allowedTypes.includes(file.type)) { updateStatus(imageStatusDiv, `Loại file không hợp lệ.`, 'error'); imageSubmitBtn.disabled = false; return; } const formData = new FormData(); formData.append('file', file); updateStatus(imageStatusDiv, 'Đang tải và xử lý ảnh...', 'processing'); try { console.log("Attempting fetch to /upload_image"); const uploadResponse = await fetch('/upload_image', { method: 'POST', body: formData }); console.log("Fetch response received:", uploadResponse.status); if (!uploadResponse.ok) { let errorMsg = `Tải ảnh thất bại: ${uploadResponse.statusText}`; try { const e=await uploadResponse.json(); errorMsg = e.error || errorMsg; } catch (ignore) {} throw new Error(errorMsg); } const data = await uploadResponse.json(); const taskId = data.task_id; console.log("Received image task ID:", taskId); updateStatus(imageStatusDiv, `Chờ phân tích (Task ID: ${taskId})...`, 'processing'); imagePollInterval = setInterval(() => checkStatus(taskId, 'image'), 4000); } catch (error) { console.error('Lỗi tải ảnh lên:', error); updateStatus(imageStatusDiv, `Lỗi tải lên: ${error.message}`, 'error'); imageSubmitBtn.disabled = false;} }); } else { console.error("Không tìm thấy form ảnh!"); }
 
-            if (!fileInput.files || fileInput.files.length === 0) {
-                statusDiv.textContent = 'Please select an image file.';
-                statusDiv.className = 'error';
-                submitBtn.disabled = false;
-                return;
-            }
+        // === Xử lý Form Văn bản ===
+        if (textForm) { textForm.addEventListener('submit', async (event) => { console.log("Text form submit event triggered."); event.preventDefault(); console.log("Default form submission prevented for text."); updateStatus(textStatusDiv, '', null); textResultDiv.style.display = 'none'; textSubmitBtn.disabled = true; if (textPollInterval) clearInterval(textPollInterval); const textValue = textInputArea.value.trim(); if (!textValue) { updateStatus(textStatusDiv, 'Vui lòng nhập văn bản.', 'error'); textSubmitBtn.disabled = false; return; } updateStatus(textStatusDiv, 'Đang gửi và xử lý văn bản...', 'processing'); try { console.log("Attempting fetch to /detect_text"); const detectResponse = await fetch('/detect_text', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text_input: textValue }) }); console.log("Fetch response received:", detectResponse.status); if (!detectResponse.ok) { let errorMsg = `Gửi văn bản thất bại: ${detectResponse.statusText}`; try { const e=await detectResponse.json(); errorMsg = e.error || errorMsg; } catch (ignore) {} throw new Error(errorMsg); } const data = await detectResponse.json(); const taskId = data.task_id; console.log("Received text task ID:", taskId); updateStatus(textStatusDiv, `Chờ phân tích (Task ID: ${taskId})...`, 'processing'); textPollInterval = setInterval(() => checkStatus(taskId, 'text'), 4000); } catch (error) { console.error('Lỗi gửi văn bản:', error); updateStatus(textStatusDiv, `Lỗi gửi: ${error.message}`, 'error'); textSubmitBtn.disabled = false;} }); } else { console.error("Không tìm thấy form text!"); }
 
-            // --- Check file type again on client-side (optional but good UX) ---
-            const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
-            const file = fileInput.files[0];
-            if (!allowedTypes.includes(file.type)) {
-                 statusDiv.textContent = `Invalid file type. Please select a PNG, JPG, or WEBP image. (Detected type: ${file.type || 'unknown'})`;
-                 statusDiv.className = 'error';
-                 submitBtn.disabled = false;
-                 return;
-            }
-            // --- End optional client-side check ---
+        // === Hàm Kiểm tra Trạng thái Chung (Đã sửa) ===
+        async function checkStatus(taskId, type) {
+            console.log(`Kiểm tra trạng thái cho task ${type}: ${taskId}`);
+            const statusDiv = (type === 'image') ? imageStatusDiv : textStatusDiv;
+            const resultDiv = (type === 'image') ? imageResultDiv : textResultDiv;
+            const submitBtn = (type === 'image') ? imageSubmitBtn : textSubmitBtn;
+            const sliderIndicator = (type === 'image') ? imageSliderIndicator : textSliderIndicator;
+            const resultDetails = (type === 'image') ? imageResultDetails : textResultDetails;
+            let pollIntervalRef = (type === 'image') ? imagePollInterval : textPollInterval; // Use a distinct name
 
+            // Check elements (keep as before)
+            if (!statusDiv || !resultDiv || !submitBtn || !sliderIndicator || !resultDetails) { /* ... */ return; }
 
-            const formData = new FormData();
-            formData.append('file', file);
-
-            statusDiv.textContent = 'Uploading image...';
-            statusDiv.className = 'processing';
-
-            try {
-                const uploadResponse = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                if (!uploadResponse.ok) {
-                    const errorData = await uploadResponse.json();
-                    throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
-                }
-
-                const data = await uploadResponse.json();
-                const taskId = data.task_id;
-
-                statusDiv.textContent = `Image uploaded. Processing task ID: ${taskId}. Waiting for analysis...`;
-                statusDiv.className = 'processing';
-
-                pollInterval = setInterval(() => checkStatus(taskId), 3000);
-
-            } catch (error) {
-                console.error('Error during upload:', error);
-                statusDiv.textContent = `Error: ${error.message}`;
-                statusDiv.className = 'error';
-                submitBtn.disabled = false;
-                if (pollInterval) clearInterval(pollInterval);
-            }
-        });
-
-        async function checkStatus(taskId) {
             try {
                 const statusResponse = await fetch(`/status/${taskId}`);
-                if (!statusResponse.ok) {
-                    // Try to get error message from body if available
-                    let errorMsg = `Failed to get status: ${statusResponse.statusText}`;
-                    try {
-                        const errData = await statusResponse.json();
-                        if (errData.error) errorMsg = errData.error;
-                    } catch(e) {/* Ignore JSON parse error */}
-                    throw new Error(errorMsg);
-                }
+                 if (!statusResponse.ok) { /* ... (404/fetch error handling) ... */ return; }
 
                 const data = await statusResponse.json();
-
-                statusDiv.textContent = `Status: ${data.state} - ${data.status}`;
+                updateStatus(statusDiv, data.status || `Trạng thái: ${data.state}`, (data.state === 'SUCCESS' ? 'success' : (data.state === 'FAILURE' ? 'error' : 'processing')));
 
                 if (data.state === 'SUCCESS') {
-                    clearInterval(pollInterval);
-                    statusDiv.className = 'success';
-                    const resultData = data.result;
-                    // Display formatted results
-                    resultDiv.innerHTML = `
-                        <h3>Detection Result for ${resultData.original_filename || 'image'}</h3>
-                        <pre>${JSON.stringify(resultData.detection, null, 2)}</pre>
-                    `;
-                    submitBtn.disabled = false;
+                    clearInterval(pollIntervalRef); // Clear the correct interval variable
+                    if(type === 'image'){ imagePollInterval=null; } else { textPollInterval=null; }
+
+                    const resultData = data.result; // Should contain {'status':'success', 'input_identifier':'...', 'detection':{...}}
+                    console.log(`[${type}] SUCCESS task ${taskId}. Full Result Data:`, JSON.stringify(resultData));
+
+                    // *** TRY ACCESSING detection field carefully ***
+                    let detectionDetails = null;
+                    if (resultData && typeof resultData === 'object' && resultData.hasOwnProperty('detection')) {
+                        detectionDetails = resultData.detection;
+                    } else {
+                         console.error(`[${type}] 'detection' key missing or resultData is not an object for task:`, taskId, "ResultData:", resultData);
+                    }
+
+                    console.log(`[${type}] Extracted Detection Details:`, JSON.stringify(detectionDetails)); // Log what was extracted
+
+                    if (detectionDetails && typeof detectionDetails === 'object') {
+                        // Ensure visualization elements exist and are displayed
+                        const viz = resultDiv.querySelector('.result-visualization'); if(viz) viz.style.display = 'block'; else console.error("Viz div missing for", type);
+                        const track = resultDiv.querySelector('.slider-track'); if(track) track.style.display = 'block'; else console.error("Track missing for", type);
+                        const labels = resultDiv.querySelector('.slider-labels'); if(labels) labels.style.display = 'flex'; else console.error("Labels missing for", type);
+                        if (sliderIndicator) sliderIndicator.style.display = 'block'; else console.error("Indicator missing for", type);
+
+                        // Update Slider & Details
+                        const aiLikelihood = calculateAiLikelihood(detectionDetails);
+                        updateSlider(sliderIndicator, aiLikelihood);
+                        const classificationText = detectionDetails.classification || 'Không xác định';
+                        const messageText = detectionDetails.message || 'Không có chi tiết.';
+                        resultDetails.innerHTML = `<p><strong>Phân loại:</strong> ${classificationText}</p><p><em>${messageText}</em></p>`;
+
+                    } else {
+                        // Handle case where detectionDetails could not be extracted
+                        console.error(`[${type}] Final check failed: detectionDetails object invalid or missing for task:`, taskId);
+                        resultDetails.innerHTML = `<p style="color: var(--error-text);">Lỗi hiển thị kết quả chi tiết (dữ liệu không hợp lệ).</p>`; // Invalid data error
+                        const viz = resultDiv.querySelector('.result-visualization'); if(viz) viz.style.display = 'none'; // Hide viz area
+                    }
+
+                    resultDiv.style.display = 'block'; // Show the result area
+                    if (submitBtn) submitBtn.disabled = false; // Re-enable button
+
                 } else if (data.state === 'FAILURE') {
-                    clearInterval(pollInterval);
-                    statusDiv.className = 'error';
-                     // Try to get more specific error info from task meta/result
-                     let detailedError = "Processing failed.";
-                     if (data.result && typeof data.result === 'string') {
-                         detailedError = data.result; // Might be the exception string
-                     } else if (data.result && data.result.message) {
-                         detailedError = data.result.message;
-                     } else if (data.result && data.result.exc_message) { // Check meta stored on failure
-                         detailedError = `${data.result.exc_type}: ${data.result.exc_message}`;
-                     }
-                     statusDiv.textContent = `Task Failed`;
-                     resultDiv.textContent = `Error details: ${detailedError}`;
-                     if (data.result && data.result.original_filename) {
-                         resultDiv.textContent += ` (File: ${data.result.original_filename})`
-                     }
-
-                    submitBtn.disabled = false;
-                } else {
-                    statusDiv.className = 'processing';
+                     // ... (Failure logic - Keep as before) ...
+                     clearInterval(pollIntervalRef); if(type === 'image'){ imagePollInterval=null; } else { textPollInterval=null; }
+                     updateStatus(statusDiv, `Task Thất bại`, 'error'); let detailedError = "Xử lý thất bại."; if (data.result?.error_message) { detailedError = `${data.result.error_type}: ${data.result.error_message}`; } else if (data.result && typeof data.result === 'string') { detailedError = data.result; }
+                     resultDetails.innerHTML = `<p style="color: var(--error-text);"><strong>Lỗi:</strong> ${detailedError}</p>`; const viz = resultDiv.querySelector('.result-visualization'); if(viz) viz.style.display = 'none'; resultDiv.style.display = 'block'; if (submitBtn) submitBtn.disabled = false;
+                } else { // PENDING or PROCESSING
+                     resultDiv.style.display = 'none'; // Keep result hidden
                 }
-
             } catch (error) {
-                console.error('Error polling status:', error);
-                statusDiv.textContent = `Error checking status: ${error.message}`;
-                statusDiv.className = 'error';
-                clearInterval(pollInterval);
-                submitBtn.disabled = false;
+                console.error(`Lỗi checkStatus ${type} (${taskId}):`, error);
+                updateStatus(statusDiv, `Lỗi kiểm tra: ${error.message}. Thử lại...`, 'error');
             }
         }
     </script>
-
 </body>
 </html>
