@@ -2,8 +2,9 @@ Flask>=2.0
 Flask-SQLAlchemy>=2.5
 Flask-Migrate>=3.0
 Pillow>=9.0
-transformers>=4.20 # Or check compatibility with chosen models
-torch>=1.10 # Use specific version if needed, consider CPU only: torch --index-url https://download.pytorch.org/whl/cpu
-# sentencepiece # Add if required by your chosen text model
-gunicorn>=20.1
-psycopg2-binary>=2.9 # For PostgreSQL
+transformers>=4.20 # Check model compatibility
+torch>=1.10 # Or specific CPU version like: torch --index-url https://download.pytorch.org/whl/cpu
+# sentencepiece # Add if text model needs it
+# sacremoses # Add if text model needs it
+gunicorn>=20.1 # Production WSGI Server for Render
+psycopg2-binary>=2.9 # PostgreSQL driver
