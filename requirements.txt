@@ -1,7 +1,9 @@
 Flask>=2.0
-# Remove celery and redis
-# celery>=5.0
-# redis>=4.0
-requests
-Pillow>=9.0
 Flask-SQLAlchemy>=2.5
+Flask-Migrate>=3.0
+Pillow>=9.0
+transformers>=4.20 # Or check compatibility with chosen models
+torch>=1.10 # Use specific version if needed, consider CPU only: torch --index-url https://download.pytorch.org/whl/cpu
+# sentencepiece # Add if required by your chosen text model
+gunicorn>=20.1
+psycopg2-binary>=2.9 # For PostgreSQL
