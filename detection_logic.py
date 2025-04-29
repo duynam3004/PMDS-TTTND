@@ -3,7 +3,7 @@ import time, os, json, logging, sys, traceback
 from PIL import Image, UnidentifiedImageError
 
 log_format = '%(asctime)s - %(levelname)s - IMG_DL_Local - %(message)s'; logging.basicConfig(level=logging.INFO, format=log_format); log = logging.getLogger(__name__)
-MODEL_NAME = "umm-maybe/AI-image-detector"
+MODEL_NAME = "umm-maybe/AI-image-detector" # Or choose another model
 IMAGE_MODEL_LOADED = False; image_detector_pipeline = None
 try:
     log.info(f"Nạp pipeline ảnh: {MODEL_NAME}...")
@@ -11,8 +11,8 @@ try:
     image_detector_pipeline = hf_pipeline("image-classification", model=MODEL_NAME)
     if image_detector_pipeline: IMAGE_MODEL_LOADED = True; log.info(f"Nạp xong model ảnh: {MODEL_NAME}.")
     else: log.error(f"Pipeline ảnh trả về None cho {MODEL_NAME}!")
-except ImportError as e: log.error(f"LỖI IMPORT NGHIÊM TRỌNG: Thiếu transformers/torch/tf: {e}", exc_info=True)
-except Exception as e: log.error(f"LỖI NGHIÊM TRỌNG NẠP MODEL ẢNH '{MODEL_NAME}': {e}", exc_info=True)
+except ImportError as e: log.error(f"LỖI IMPORT: Thiếu transformers/torch/tf: {e}", exc_info=True)
+except Exception as e: log.error(f"LỖI NẠP MODEL ẢNH '{MODEL_NAME}': {e}", exc_info=True)
 
 CONFIDENT_AI_THRESHOLD = 0.90; CONFIDENT_HUMAN_THRESHOLD = 0.90
 
