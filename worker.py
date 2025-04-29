@@ -1,4 +1,4 @@
-# worker.py (Dành cho PythonAnywhere Always-on Task - Local Models)
+# worker.py (Dành cho Render Always-on Task - Local Models)
 import time, os, datetime, json, logging, sys, signal, traceback
 
 current_dir = os.path.dirname(os.path.abspath(__file__)); IMAGE_MODEL_LOADED = False; TEXT_MODEL_LOADED = False
@@ -9,7 +9,7 @@ try:
     from text_detection_logic import run_ai_text_detection, format_error_result as format_text_error, format_success_result as format_text_success, TEXT_MODEL_LOADED
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - WORKER - %(message)s')
     log = logging.getLogger(__name__); log.info("Worker: Nạp xong app và logic.")
-except Exception as import_err: print(f"WORKER CRITICAL IMPORT ERROR: {import_err}\n{traceback.format_exc()}", file=sys.stderr); sys.exit(1)
+except Exception as import_err: print(f"WORKER LỖI IMPORT: {import_err}\n{traceback.format_exc()}", file=sys.stderr); sys.exit(1)
 
 POLL_INTERVAL = 5
 shutdown_requested = False
@@ -26,9 +26,9 @@ def process_one_task():
                 identifier = task.original_filename or f"Đoạn text ({task.id})"; detection_result_json = None
                 try:
                     if task.task_type == 'image':
-                        if not IMAGE_MODEL_LOADED: raise RuntimeError("Model ảnh chưa nạp."); file_path = task.filepath
-                        if not file_path or not os.path.exists(file_path): raise FileNotFoundError(f"Không tìm thấy file ảnh: {file_path}")
-                        detection_result = run_ai_image_detection(file_path); detection_result_json = format_image_success(detection_result, identifier)
+                        if not IMAGE_MODEL_LOADED: raise RuntimeError("Model ảnh chưa nạp.")
+                        if not task.filepath or not os.path.exists(task.filepath): raise FileNotFoundError(f"Không tìm thấy file ảnh: {task.filepath}")
+                        detection_result = run_ai_image_detection(task.filepath); detection_result_json = format_image_success(detection_result, identifier)
                     elif task.task_type == 'text':
                         if not TEXT_MODEL_LOADED: raise RuntimeError("Model text chưa nạp.")
                         if not task.input_text: raise ValueError("Task thiếu input text.")
@@ -48,9 +48,9 @@ def process_one_task():
                         if task.task_type == 'image' and task.filepath and os.path.exists(task.filepath):
                              try: os.remove(task.filepath); log.debug(f"Dọn file: {task.filepath}")
                              except OSError as rm_err: log.error(f"Lỗi dọn file {task.filepath}: {rm_err}")
-            else: processed_task_flag = False # No task found
+            else: processed_task_flag = False
     except Exception as outer_exc:
-         log.critical(f"WORKER LỖI NGOÀI DỰ KIẾN khi query task: {outer_exc}", exc_info=True)
+         log.critical(f"WORKER LỖI NGOÀI DỰ KIẾN: {outer_exc}", exc_info=True)
          try:
              with app.app_context(): db.session.rollback()
          except Exception: pass
